@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Atmosphere } from "@/components/poem/Atmosphere";
 import { Starfield } from "@/components/poem/Starfield";
 import { Stanza } from "@/components/poem/Stanza";
-import { MusicToggle } from "@/components/poem/MusicToggle";
+import { AmbientAudio } from "@/components/poem/AmbientAudio";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -59,7 +59,7 @@ function Index() {
     <main className="relative min-h-screen w-full overflow-x-hidden">
       <Atmosphere />
       <Starfield />
-      <MusicToggle />
+      <AmbientAudio />
 
       {/* Opening hero */}
       <section className="relative z-10 flex min-h-screen items-center justify-center px-6">
@@ -143,11 +143,21 @@ function Index() {
         </motion.div>
 
         <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 2.4, delay: 1.0 }}
+          className="text-glow mt-12 text-center font-serif text-4xl font-light italic tracking-wide text-[color:var(--color-silver)] sm:text-5xl md:text-6xl"
+        >
+          Firdaous
+        </motion.p>
+
+        <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 2, delay: 1.2 }}
-          className="mt-10 text-center font-serif text-base italic text-[color:var(--color-silver)]/60 sm:text-lg"
+          transition={{ duration: 2, delay: 1.8 }}
+          className="mt-8 text-center font-serif text-sm italic text-[color:var(--color-silver)]/50 sm:text-base"
         >
           written into eternity
         </motion.p>
