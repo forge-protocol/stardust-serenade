@@ -23,7 +23,8 @@ export function Starfield() {
       canvas.style.width = window.innerWidth + "px";
       canvas.style.height = window.innerHeight + "px";
 
-      const count = Math.floor((window.innerWidth * window.innerHeight) / 6000);
+      const density = window.innerWidth < 768 ? 14000 : 9000;
+      const count = Math.floor((window.innerWidth * window.innerHeight) / density);
       stars = Array.from({ length: count }, () => ({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
