@@ -1,11 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "npx nuxt build",
+  "buildCommand": "vite build",
   "installCommand": "npm install",
   "build": {
     "env": {
-      "NITRO_PRESET": "vercel"
+      "NITRO_PRESET": "vercel",
+      "SERVER_PRESET": "vercel"
     }
   }
 }

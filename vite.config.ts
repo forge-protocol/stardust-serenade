@@ -7,6 +7,11 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  // Force-enable the Nitro deploy plugin outside Lovable's CI so `vite build`
+  // emits a deployable server bundle (.vercel/output for the Vercel preset,
+  // selected via NITRO_PRESET/SERVER_PRESET). Without this the plugin is skipped
+  // and only dist/client + dist/server are produced, which Vercel can't serve.
+  nitro: true,
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
