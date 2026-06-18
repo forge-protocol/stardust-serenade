@@ -1,6 +1,39 @@
 import { useEffect, useRef } from "react";
 
-type Star = { x: number; y: number; r: number; a: number; tw: number; vx: number; vy: number };
+type Star = {
+  x: number;
+  y: number;
+  r: number; // core radius (px, already scaled by dpr)
+  mag: number; // brightness 0..1 (power-law: most stars faint)
+  col: [number, number, number]; // base rgb (stellar color temperature)
+  twSpeed: number; // twinkle speed
+  twPhase: number; // twinkle phase offset
+  twAmt: number; // twinkle depth 0..1
+  spike: number; // diffraction-spike strength 0..1 (only bright stars)
+  vx: number;
+  vy: number;
+};
+
+// Realistic stellar colors spanning cool red dwarfs to hot blue giants.
+// Weighted so most stars read white / blue-white, with occasional warm ones.
+const PALETTE: Array<[number, number, number]> = [
+  [155, 176, 255], // O/B blue
+  [185, 205, 255], // blue-white
+  [220, 232, 255], // white-blue
+  [255, 255, 255], // white
+  [255, 250, 240], // warm white
+  [255, 244, 224], // F/G pale gold
+  [255, 232, 200], // K light orange
+  [255, 210, 170], // warm orange
+];
+
+function pickColor(): [number, number, number] {
+  // Bias toward white / blue-white (indices 2-4 most common).
+  const r = Math.random();
+  if (r < 0.55) return PALETTE[2 + Math.floor(Math.random() * 3)];
+  if (r < 0.8) return PALETTE[Math.floor(Math.random() * 2)];
+  return PALETTE[5 + Math.floor(Math.random() * 3)];
+}
 
 export function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,6 +44,8 @@ export function Starfield() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     let raf = 0;
     let stars: Star[] = [];
@@ -23,17 +58,29 @@ export function Starfield() {
       canvas.style.width = window.innerWidth + "px";
       canvas.style.height = window.innerHeight + "px";
 
-      const density = window.innerWidth < 768 ? 14000 : 9000;
+      // Denser field for a believable sky; a touch lighter on phones.
+      const density = window.innerWidth < 768 ? 5200 : 3600;
       const count = Math.floor((window.innerWidth * window.innerHeight) / density);
-      stars = Array.from({ length: count }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: (Math.random() * 1.2 + 0.2) * dpr,
-        a: Math.random() * 0.6 + 0.2,
-        tw: Math.random() * 0.02 + 0.005,
-        vx: 0,
-        vy: 0,
-      }));
+
+      stars = Array.from({ length: count }, () => {
+        // Power-law magnitude: most stars dim, a rare few bright.
+        const mag = Math.pow(Math.random(), 2.6);
+        const bright = mag > 0.82;
+        return {
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: (0.45 + mag * 1.15) * dpr,
+          mag,
+          col: pickColor(),
+          twSpeed: 0.6 + Math.random() * 2.2,
+          twPhase: Math.random() * Math.PI * 2,
+          // Smaller stars scintillate more, like real atmospheric twinkle.
+          twAmt: 0.25 + (1 - mag) * 0.45,
+          spike: bright ? (mag - 0.82) / 0.18 : 0,
+          vx: 0,
+          vy: 0,
+        };
+      });
     };
     resize();
     window.addEventListener("resize", resize);
@@ -48,49 +95,79 @@ export function Starfield() {
     window.addEventListener("pointerleave", onLeave);
 
     let t = 0;
-    const render = () => {
-      t += 0.016;
+    const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = "lighter";
 
       for (const s of stars) {
-        // gentle cursor attraction
-        if (mouse.current.active) {
+        // gentle cursor parallax drift
+        if (mouse.current.active && !reduceMotion) {
           const dx = mouse.current.x - s.x;
           const dy = mouse.current.y - s.y;
           const dist2 = dx * dx + dy * dy;
-          const maxR = 180 * dpr;
+          const maxR = 160 * dpr;
           if (dist2 < maxR * maxR) {
             const f = (1 - Math.sqrt(dist2) / maxR) * 0.04;
-            s.vx += dx * f * 0.001;
-            s.vy += dy * f * 0.001;
+            s.vx += dx * f * 0.0008;
+            s.vy += dy * f * 0.0008;
           }
         }
-        s.vx *= 0.96;
-        s.vy *= 0.96;
+        s.vx *= 0.95;
+        s.vy *= 0.95;
         s.x += s.vx;
         s.y += s.vy;
 
-        const twinkle = 0.5 + 0.5 * Math.sin(t * (s.tw * 60) + s.x);
-        const alpha = s.a * (0.55 + 0.45 * twinkle);
+        const tw = reduceMotion
+          ? 1
+          : 1 - s.twAmt * (0.5 - 0.5 * Math.cos(t * s.twSpeed + s.twPhase));
+        const alpha = Math.min(1, (0.35 + s.mag * 0.65) * tw);
+        const [cr, cg, cb] = s.col;
 
-        ctx.beginPath();
-        const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 6);
-        grad.addColorStop(0, `rgba(255,255,255,${alpha})`);
-        grad.addColorStop(0.4, `rgba(200,210,255,${alpha * 0.4})`);
-        grad.addColorStop(1, "rgba(120,100,200,0)");
+        // Soft, tight halo (much smaller than before — points, not orbs).
+        const haloR = s.r * (s.spike > 0 ? 5 : 3);
+        const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, haloR);
+        grad.addColorStop(0, `rgba(${cr},${cg},${cb},${alpha * 0.5})`);
+        grad.addColorStop(0.5, `rgba(${cr},${cg},${cb},${alpha * 0.12})`);
+        grad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
         ctx.fillStyle = grad;
-        ctx.arc(s.x, s.y, s.r * 6, 0, Math.PI * 2);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, haloR, 0, Math.PI * 2);
         ctx.fill();
 
+        // Crisp core.
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
         ctx.fill();
+
+        // Diffraction spikes for the brightest handful only.
+        if (s.spike > 0) {
+          const len = s.r * (6 + s.spike * 10);
+          ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha * 0.35 * s.spike})`;
+          ctx.lineWidth = Math.max(0.5, 0.6 * dpr);
+          ctx.beginPath();
+          ctx.moveTo(s.x - len, s.y);
+          ctx.lineTo(s.x + len, s.y);
+          ctx.moveTo(s.x, s.y - len);
+          ctx.lineTo(s.x, s.y + len);
+          ctx.stroke();
+        }
       }
 
+      ctx.globalCompositeOperation = "source-over";
+    };
+
+    const render = () => {
+      t += 0.016;
+      draw();
       raf = requestAnimationFrame(render);
     };
-    render();
+
+    if (reduceMotion) {
+      draw(); // single static frame
+    } else {
+      render();
+    }
 
     return () => {
       cancelAnimationFrame(raf);
@@ -100,11 +177,5 @@ export function Starfield() {
     };
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-0"
-    />
-  );
+  return <canvas ref={canvasRef} aria-hidden className="pointer-events-none fixed inset-0 z-0" />;
 }

@@ -9,33 +9,47 @@ export function AmbientAudio() {
     audio.loop = true;
     audio.volume = 0;
     audio.preload = "auto";
+    audio.autoplay = true;
     ref.current = audio;
 
-    let started = false;
     let raf = 0;
+    let audible = false; // true once we're actually playing with sound
 
     const fadeIn = () => {
+      cancelAnimationFrame(raf);
       const start = performance.now();
+      const from = audio.volume;
       const tick = (now: number) => {
         const t = Math.min(1, (now - start) / 2400);
-        audio.volume = t * 0.55;
+        audio.volume = from + (0.55 - from) * t;
         if (t < 1) raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
     };
 
-    const tryStart = () => {
-      if (started) return;
-      started = true;
-      audio
-        .play()
-        .then(fadeIn)
-        .catch(() => {
-          started = false;
-        });
+    // Promote a (possibly muted) stream to audible playback + fade in.
+    const goAudible = () => {
+      if (audible) return;
+      audible = true;
+      audio.muted = false;
+      const p = audio.paused ? audio.play() : Promise.resolve();
+      p.then(fadeIn).catch(() => {
+        audible = false;
+      });
     };
 
-    const onInteract = () => tryStart();
+    // First attempt: audible autoplay. Some browsers (with media engagement)
+    // allow this outright. If it's blocked, fall back to muted autoplay so the
+    // track is already running, then unmute on the first user gesture.
+    audio
+      .play()
+      .then(goAudible)
+      .catch(() => {
+        audio.muted = true;
+        audio.play().catch(() => {});
+      });
+
+    const onInteract = () => goAudible();
 
     window.addEventListener("scroll", onInteract, { passive: true });
     window.addEventListener("pointerdown", onInteract);

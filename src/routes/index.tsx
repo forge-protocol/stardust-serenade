@@ -56,18 +56,18 @@ function Index() {
   }, []);
 
   return (
-    <main className="relative min-h-screen w-full overflow-x-hidden">
+    <main className="relative min-h-[100svh] w-full overflow-x-hidden">
       <Atmosphere />
       <Starfield />
       <AmbientAudio />
 
       {/* Opening hero */}
-      <section className="relative z-10 flex min-h-screen items-center justify-center px-6">
+      <section className="relative z-10 flex min-h-[100svh] items-center justify-center px-5 sm:px-6">
         <motion.h1
           initial={{ opacity: 0, scale: 0.96, filter: "blur(20px)" }}
           animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
           transition={{ duration: 2.4, ease: [0.22, 0.61, 0.36, 1] }}
-          className="text-glow text-center font-serif text-5xl font-light italic leading-tight text-[color:var(--color-silver)] sm:text-7xl md:text-8xl"
+          className="text-balance text-center font-serif text-[2.75rem] font-light italic leading-tight text-[color:var(--color-silver)] sm:text-7xl md:text-8xl"
         >
           Am I your first?
         </motion.h1>
@@ -108,13 +108,13 @@ function Index() {
       </div>
 
       {/* Closing */}
-      <section className="relative z-10 flex min-h-[90vh] flex-col items-center justify-center px-6 py-24">
+      <section className="relative z-10 flex min-h-[90svh] flex-col items-center justify-center px-5 py-20 sm:px-6 sm:py-24">
         <motion.h2
           initial={{ opacity: 0, scale: 0.92, filter: "blur(18px)" }}
           whileInView={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
           viewport={{ once: true, amount: 0.6 }}
           transition={{ duration: 2.2, ease: [0.22, 0.61, 0.36, 1] }}
-          className="text-glow text-center font-serif text-6xl font-light italic text-[color:var(--color-silver)] sm:text-7xl md:text-8xl"
+          className="text-center font-serif text-5xl font-light italic text-[color:var(--color-silver)] sm:text-7xl md:text-8xl"
         >
           For you.
         </motion.h2>
@@ -147,7 +147,7 @@ function Index() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 2.4, delay: 1.0 }}
-          className="text-glow mt-12 text-center font-serif text-4xl font-light italic tracking-wide text-[color:var(--color-silver)] sm:text-5xl md:text-6xl"
+          className="mt-12 text-center font-serif text-4xl font-light italic tracking-wide text-[color:var(--color-silver)] sm:text-5xl md:text-6xl"
         >
           Firdaous
         </motion.p>
