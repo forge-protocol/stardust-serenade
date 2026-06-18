@@ -1,22 +1,35 @@
 import { useEffect, useState } from "react";
 import moonImg from "@/assets/moon.png";
 
-
 export function Atmosphere() {
-  const [scrollY, setScrollY] = useState(0);
+  const [progress, setProgress] = useState(0); // 0..1 scroll progress
 
   useEffect(() => {
     let raf = 0;
+    const compute = () => {
+      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const p = Math.min(1, Math.max(0, window.scrollY / max));
+      setProgress(p);
+    };
     const onScroll = () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => setScrollY(window.scrollY));
+      raf = requestAnimationFrame(compute);
     };
+    compute();
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", compute);
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", compute);
       cancelAnimationFrame(raf);
     };
   }, []);
+
+  // Moon: large at top, shrinks gradually. Scale 1 -> 0.28
+  const scale = 1 - progress * 0.72;
+  // Drifts upward slightly as it shrinks
+  const translateY = -progress * 18; // vh
+  const opacity = 0.95 - progress * 0.35;
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
@@ -29,61 +42,36 @@ export function Atmosphere() {
         }}
       />
 
-      {/* moon — parallax */}
+      {/* Moon — large in background, scales down on scroll */}
       <div
-        className="absolute"
+        className="absolute left-1/2 top-1/2"
         style={{
-          right: "-6vw",
-          top: `calc(8vh - ${scrollY * 0.15}px)`,
-          width: "min(70vw, 520px)",
-          height: "min(70vw, 520px)",
-          transform: `translate3d(0, ${scrollY * 0.05}px, 0)`,
+          width: "min(140vw, 1100px)",
+          height: "min(140vw, 1100px)",
+          transform: `translate3d(-50%, calc(-50% + ${translateY}vh), 0) scale(${scale})`,
+          transformOrigin: "center center",
+          willChange: "transform, opacity",
+          opacity,
+          transition: "opacity 200ms linear",
         }}
       >
-        {/* soft outer halo */}
-        <div className="moon-glow animate-moon-pulse absolute inset-0 rounded-full" />
-        {/* real moon photograph */}
         <img
           src={moonImg}
           alt=""
           width={1024}
           height={1024}
-          loading="lazy"
-          className="animate-moon-pulse absolute inset-[10%] h-[80%] w-[80%] object-contain"
-          style={{
-            filter:
-              "drop-shadow(0 0 60px oklch(0.95 0.05 90 / 0.45)) drop-shadow(0 0 120px oklch(0.85 0.08 80 / 0.25))",
-          }}
+          decoding="async"
+          className="h-full w-full object-contain select-none"
+          draggable={false}
         />
       </div>
 
-      {/* drifting mist layers */}
-      <div
-        className="absolute -inset-[20%] opacity-40 animate-drift"
-        style={{
-          background:
-            "radial-gradient(ellipse at 30% 60%, oklch(0.5 0.15 290 / 0.18) 0%, transparent 50%), radial-gradient(ellipse at 70% 30%, oklch(0.4 0.2 260 / 0.15) 0%, transparent 55%)",
-          filter: "blur(40px)",
-          transform: `translate3d(0, ${scrollY * -0.08}px, 0)`,
-        }}
-      />
-      <div
-        className="absolute -inset-[20%] opacity-30"
-        style={{
-          background:
-            "radial-gradient(ellipse at 60% 80%, oklch(0.5 0.18 320 / 0.18) 0%, transparent 50%)",
-          filter: "blur(60px)",
-          animation: "drift 26s ease-in-out infinite reverse",
-          transform: `translate3d(0, ${scrollY * -0.04}px, 0)`,
-        }}
-      />
-
-      {/* vignette */}
+      {/* vignette for legibility */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at center, transparent 40%, oklch(0.05 0.02 280 / 0.6) 100%)",
+            "radial-gradient(ellipse at center, transparent 35%, oklch(0.05 0.02 280 / 0.75) 100%)",
         }}
       />
     </div>
