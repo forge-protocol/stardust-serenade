@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import moonImg from "@/assets/moon.png";
+
 
 export function Atmosphere() {
   const [scrollY, setScrollY] = useState(0);
@@ -38,15 +40,19 @@ export function Atmosphere() {
           transform: `translate3d(0, ${scrollY * 0.05}px, 0)`,
         }}
       >
-        <div className="moon-glow animate-moon-pulse h-full w-full rounded-full" />
-        <div
-          className="absolute inset-[18%] rounded-full"
+        {/* soft outer halo */}
+        <div className="moon-glow animate-moon-pulse absolute inset-0 rounded-full" />
+        {/* real moon photograph */}
+        <img
+          src={moonImg}
+          alt=""
+          width={1024}
+          height={1024}
+          loading="lazy"
+          className="animate-moon-pulse absolute inset-[10%] h-[80%] w-[80%] object-contain"
           style={{
-            background:
-              "radial-gradient(circle at 35% 35%, oklch(0.98 0.02 90) 0%, oklch(0.88 0.04 80) 55%, oklch(0.65 0.06 60) 100%)",
-            boxShadow:
-              "inset -30px -40px 80px oklch(0.4 0.08 290 / 0.5), 0 0 120px oklch(0.95 0.05 90 / 0.4)",
-            opacity: 0.92,
+            filter:
+              "drop-shadow(0 0 60px oklch(0.95 0.05 90 / 0.45)) drop-shadow(0 0 120px oklch(0.85 0.08 80 / 0.25))",
           }}
         />
       </div>
